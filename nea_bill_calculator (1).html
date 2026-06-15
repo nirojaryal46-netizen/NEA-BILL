@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NEA Electricity Bill Calculator — Nepal</title>
+<style>
+  :root {
+    --blue-50: #E6F1FB; --blue-100: #B5D4F4; --blue-600: #185FA5; --blue-800: #0C447C; --blue-900: #042C53;
+    --green-50: #EAF3DE; --green-100: #C0DD97; --green-600: #3B6D11; --green-800: #27500A;
+    --amber-50: #FAEEDA; --amber-100: #FAC775; --amber-600: #854F0B; --amber-800: #633806;
+    --red-50: #FCEBEB; --red-100: #F7C1C1; --red-600: #A32D2D; --red-800: #791F1F;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-400: #888780; --gray-600: #5F5E5A; --gray-800: #444441;
+    --bg: #f5f5f3;
+    --card: #ffffff;
+    --text: #1a1a18;
+    --text-muted: #5F5E5A;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.22);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18; --card: #242422; --text: #f0ede8; --text-muted: #9e9b94;
+      --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.2);
+      --gray-50: #2c2c2a;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0; }
+
+  /* Top bar */
+  .topbar { background: var(--blue-800); color: #fff; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .topbar-brand { display: flex; align-items: center; gap: 10px; }
+  .topbar-logo { width: 32px; height: 32px; background: rgba(255,255,255,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .topbar-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .topbar-sub { font-size: 11px; opacity: 0.7; }
+  .topbar-right { font-size: 12px; opacity: 0.6; }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem; max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+  @media (max-width: 768px) { .layout { grid-template-columns: 1fr; padding: 1rem; } }
+
+  /* Cards */
+  .card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+  .card:last-child { margin-bottom: 0; }
+  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 1rem; }
+
+  /* Form */
+  .form-group { margin-bottom: 1rem; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 5px; }
+  .form-group select, .form-group input[type=number] {
+    width: 100%; padding: 9px 12px; font-size: 14px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm); outline: none; transition: border-color 0.15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  .form-group select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+  .form-group select:focus, .form-group input:focus { border-color: var(--blue-600); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Slider */
+  .slider-wrap { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+  .slider-wrap input[type=range] { flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px; background: var(--border-strong); outline: none; }
+  .slider-wrap input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--blue-600); cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+  .slider-val { font-size: 14px; font-weight: 600; min-width: 28px; text-align: right; color: var(--text); }
+  .slider-unit { font-size: 13px; color: var(--text-muted); }
+
+  /* Status chips */
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-top: 10px; width: 100%; }
+  .chip-ok { background: var(--green-50); color: var(--green-600); border: 0.5px solid var(--green-100); }
+  .chip-warn { background: var(--amber-50); color: var(--amber-800); border: 0.5px solid var(--amber-100); }
+  .chip-danger { background: var(--red-50); color: var(--red-800); border: 0.5px solid var(--red-100); }
+  .chip svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* Bill panel */
+  .bill-panel { position: sticky; top: 1.5rem; }
+  .total-block { background: var(--blue-800); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; color: #fff; }
+  .total-block .label { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+  .total-block .amount { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; }
+  .total-block .meta { font-size: 12px; opacity: 0.6; margin-top: 4px; }
+
+  /* Stat row */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+  .stat { background: var(--gray-50); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .stat .s-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .stat .s-val { font-size: 16px; font-weight: 600; color: var(--text); }
+  .stat .s-unit { font-size: 11px; color: var(--text-muted); }
+
+  /* Breakdown table */
+  .breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .breakdown-table thead th { text-align: left; padding: 6px 8px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .breakdown-table tbody td { padding: 8px 8px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  .breakdown-table tbody tr:last-child td { border-bottom: none; }
+  .breakdown-table .svc-row td { font-weight: 500; }
+  .slab-badge { display: inline-block; background: var(--blue-50); color: var(--blue-800); font-size: 11px; padding: 2px 7px; border-radius: 4px; }
+  .five-a-note { background: var(--amber-50); border: 0.5px solid var(--amber-100); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; color: var(--amber-800); margin-bottom: 1rem; }
+
+  /* Adjustment rows */
+  .adj-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; border-top: 0.5px solid var(--border); }
+  .adj-label { color: var(--text-muted); }
+  .adj-green { color: var(--green-600); font-weight: 600; }
+  .adj-red { color: var(--red-600); font-weight: 600; }
+  .adj-total { font-weight: 600; font-size: 15px; color: var(--text); border-top: 1.5px solid var(--border-strong); padding-top: 10px; margin-top: 2px; }
+
+  /* Tariff reference */
+  .tariff-ref { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tariff-ref th { text-align: right; padding: 5px 8px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+  .tariff-ref th:first-child { text-align: left; }
+  .tariff-ref td { padding: 6px 8px; border-bottom: 0.5px solid var(--border); text-align: right; color: var(--text); }
+  .tariff-ref td:first-child { text-align: left; color: var(--text-muted); }
+  .tariff-ref tr.active-slab td { background: var(--blue-50); color: var(--blue-800); font-weight: 600; }
+  .tariff-ref tr:last-child td { border-bottom: none; }
+
+  /* Print */
+  @media print {
+    .topbar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .total-block { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .layout { grid-template-columns: 1fr; }
+    .bill-panel { position: static; }
+    .no-print { display: none !important; }
+  }
+
+  /* Button */
+  .btn-print { display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center; padding: 10px; font-size: 13px; font-weight: 500; color: var(--blue-600); background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: var(--radius-sm); cursor: pointer; margin-top: 1rem; transition: background 0.15s; }
+  .btn-print:hover { background: var(--blue-100); }
+  .btn-print svg { width: 16px; height: 16px; }
+
+  .hidden { display: none !important; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 1rem 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">⚡</div>
+    <div>
+      <div class="topbar-name">NEA Bill Calculator</div>
+      <div class="topbar-sub">नेपाल विद्युत् प्राधिकरण — Consumer Tariff</div>
+    </div>
+  </div>
+  <div class="topbar-right">180th ERC Meeting Rates</div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: Input panel -->
+  <div class="no-print" style="min-width:0;">
+
+    <div class="card">
+      <div class="section-label">Connection</div>
+      <div class="form-group">
+        <label>Meter capacity</label>
+        <select id="ampere" onchange="calculate()">
+          <option value="5">5 Ampere</option>
+          <option value="15" selected>15 Ampere</option>
+          <option value="30">30 Ampere</option>
+          <option value="60">60 Ampere</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Enter reading as</label>
+        <select id="readType" onchange="toggleReadType()">
+          <option value="units">Units consumed (kWh)</option>
+          <option value="readings">Previous & current meter reading</option>
+        </select>
+      </div>
+      <div id="unitInput">
+        <div class="form-group">
+          <label>Units consumed this month (kWh)</label>
+          <input type="number" id="units" value="120" min="0" max="9999" oninput="calculate()" />
+        </div>
+      </div>
+      <div id="readingInput" class="hidden">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Previous reading</label>
+            <input type="number" id="prevRead" value="4500" min="0" oninput="calculate()" />
+          </div>
+          <div class="form-group">
+            <label>Current reading</label>
+            <input type="number" id="currRead" value="4620" min="0" oninput="calculate()" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Payment timing</div>
+      <div class="form-group">
+        <label>Days since meter reading date</label>
+        <div class="slider-wrap">
+          <input type="range" id="daysSlider" min="1" max="75" value="10" step="1"
+            oninput="document.getElementById('daysVal').textContent=this.value; calculate();" />
+          <span class="slider-val" id="daysVal">10</span>
+          <span class="slider-unit">days</span>
+        </div>
+      </div>
+      <div id="payChip" class="chip chip-ok">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2,8 6,12 14,4"/></svg>
+        2% early payment discount applies
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Tariff reference — your connection</div>
+      <table class="tariff-ref" id="tariffRef"></table>
+      <p style="font-size:11px; color:var(--text-muted); margin-top:10px; line-height:1.5;">
+        ℹ Energy charges are calculated progressively — each slab rate applies only to the units within that slab range.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Bill panel -->
+  <div class="bill-panel" style="min-width:0;">
+
+    <div class="total-block">
+      <div class="label">Total payable amount</div>
+      <div class="amount" id="totalBill">रू 0</div>
+      <div class="meta" id="totalMeta">—</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="s-label">Units</div>
+        <div class="s-val" id="statUnits">0</div>
+        <div class="s-unit">kWh</div>
+      </div>
+      <div class="stat">
+        <div class="s-label">Service charge</div>
+        <div class="s-val" id="statSvc">रू 0</div>
+        <div class="s-unit">fixed</div>
+      </div>
+      <div class="stat">
+        <div class="s-label">Energy charge</div>
+        <div class="s-val" id="statEnergy">रू 0</div>
+        <div class="s-unit">variable</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Slab breakdown</div>
+      <div id="fiveANote" class="five-a-note hidden"></div>
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th>Slab</th>
+            <th style="text-align:right;">Units</th>
+            <th style="text-align:right;">Rate</th>
+            <th style="text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="slabBody"></tbody>
+      </table>
+
+      <div style="margin-top: 0.75rem;">
+        <div class="adj-row">
+          <span class="adj-label">Service charge</span>
+          <span id="adjSvc">रू 0</span>
+        </div>
+        <div class="adj-row">
+          <span class="adj-label">Energy charges total</span>
+          <span id="adjEnergy">रू 0</span>
+        </div>
+        <div class="adj-row" style="font-weight:600;">
+          <span class="adj-label" style="color:var(--text);">Base bill</span>
+          <span id="adjBase">रू 0</span>
+        </div>
+        <div id="discountRow" class="adj-row hidden">
+          <span class="adj-label adj-green">Early payment discount (2%)</span>
+          <span class="adj-green" id="adjDiscount">− रू 0</span>
+        </div>
+        <div id="penaltyRow" class="adj-row hidden">
+          <span class="adj-label adj-red" id="penaltyLabel">Surcharge</span>
+          <span class="adj-red" id="adjPenalty">+ रू 0</span>
+        </div>
+        <div class="adj-row adj-total">
+          <span>Total payable</span>
+          <span id="adjTotal">रू 0</span>
+        </div>
+        <div id="reconRow" class="adj-row hidden" style="color:#A32D2D; font-size:12px;">
+          <span>Reconnection fee (if disconnected)</span>
+          <span>रू 500</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-print no-print" onclick="window.print()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 6V1h8v5M4 11H2V6h12v5h-2M4 9h8v6H4z"/>
+      </svg>
+      Print / Save as PDF
+    </button>
+
+  </div>
+</div>
+
+<script>
+const TARIFF = {
+  5:  [{max:20,svc:30,nrg:3},{max:30,svc:50,nrg:6.5},{max:50,svc:50,nrg:8},{max:100,svc:75,nrg:9.5},{max:250,svc:100,nrg:9.5},{max:Infinity,svc:150,nrg:11}],
+  15: [{max:20,svc:50,nrg:4},{max:30,svc:75,nrg:6.5},{max:50,svc:75,nrg:8},{max:100,svc:100,nrg:9.5},{max:250,svc:125,nrg:9.5},{max:Infinity,svc:175,nrg:11}],
+  30: [{max:20,svc:75,nrg:5},{max:30,svc:100,nrg:6.5},{max:50,svc:100,nrg:8},{max:100,svc:125,nrg:9.5},{max:250,svc:150,nrg:9.5},{max:Infinity,svc:200,nrg:11}],
+  60: [{max:20,svc:125,nrg:6},{max:30,svc:125,nrg:6.5},{max:50,svc:125,nrg:8},{max:100,svc:150,nrg:9.5},{max:250,svc:200,nrg:9.5},{max:Infinity,svc:250,nrg:11}]
+};
+const LABELS = ['0 – 20','21 – 30','31 – 50','51 – 100','101 – 250','250+'];
+const PREV_MAX = [0,20,30,50,100,250];
+
+function getSlabIdx(u) {
+  const maxes=[20,30,50,100,250,Infinity];
+  for(let i=0;i<maxes.length;i++) if(u<=maxes[i]) return i;
+  return maxes.length-1;
+}
+
+function fmt(n) { return 'रू ' + Math.round(n).toLocaleString('en-IN'); }
+function fmt2(n) { return 'रू ' + n.toFixed(2); }
+
+function toggleReadType() {
+  const t = document.getElementById('readType').value;
+  document.getElementById('unitInput').classList.toggle('hidden', t==='readings');
+  document.getElementById('readingInput').classList.toggle('hidden', t==='units');
+  calculate();
+}
+
+function calculate() {
+  const amp = parseInt(document.getElementById('ampere').value);
+  const readType = document.getElementById('readType').value;
+  let units;
+  if(readType==='readings') {
+    const p = parseFloat(document.getElementById('prevRead').value)||0;
+    const c = parseFloat(document.getElementById('currRead').value)||0;
+    units = Math.max(0, c - p);
+  } else {
+    units = parseFloat(document.getElementById('units').value)||0;
+  }
+  const days = parseInt(document.getElementById('daysSlider').value);
+  const slabs = TARIFF[amp];
+  const slabIdx = getSlabIdx(units);
+  const svc = slabs[slabIdx].svc;
+
+  let energyCharge = 0;
+  let slabHtml = '';
+
+  document.getElementById('fiveANote').classList.add('hidden');
+  let remaining = units;
+  let prev = 0;
+  for(let i=0;i<=slabIdx;i++) {
+    const slabTop = slabs[i].max===Infinity ? units : slabs[i].max;
+    const inSlab = Math.min(remaining, slabTop - prev);
+    if(inSlab<=0) break;
+    const cost = inSlab * slabs[i].nrg;
+    energyCharge += cost;
+    slabHtml += `<tr>
+      <td><span class="slab-badge">${LABELS[i]}</span></td>
+      <td style="text-align:right;">${inSlab}</td>
+      <td style="text-align:right;">रू ${slabs[i].nrg}</td>
+      <td style="text-align:right; font-weight:500;">${fmt2(cost)}</td>
+    </tr>`;
+    remaining -= inSlab;
+    prev = slabTop;
+    if(remaining<=0) break;
+  }
+
+  const baseBill = svc + energyCharge;
+  let discount=0, penalty=0, penLabel='';
+  if(days<=7) { discount=baseBill*0.02; }
+  else if(days<=15) { /* no change */ }
+  else if(days<=30) { penalty=baseBill*0.05; penLabel='Surcharge 5% (days 16–30)'; }
+  else if(days<=40) { penalty=baseBill*0.10; penLabel='Surcharge 10% (days 31–40)'; }
+  else { penalty=baseBill*0.25; penLabel='Surcharge 25% (days 41–60)'; }
+
+  const total = Math.round(baseBill - discount + penalty);
+
+  // Update DOM
+  document.getElementById('slabBody').innerHTML = slabHtml;
+  document.getElementById('totalBill').textContent = fmt(total);
+  document.getElementById('totalMeta').textContent = units + ' kWh consumed · ' + amp + 'A connection';
+  document.getElementById('statUnits').textContent = units;
+  document.getElementById('statSvc').textContent = 'रू '+svc;
+  document.getElementById('statEnergy').textContent = fmt2(energyCharge);
+  document.getElementById('adjSvc').textContent = fmt2(svc);
+  document.getElementById('adjEnergy').textContent = fmt2(energyCharge);
+  document.getElementById('adjBase').textContent = fmt2(baseBill);
+  document.getElementById('adjTotal').textContent = fmt(total);
+
+  const dRow=document.getElementById('discountRow'), pRow=document.getElementById('penaltyRow');
+  const rRow=document.getElementById('reconRow');
+  dRow.classList.toggle('hidden', discount===0);
+  pRow.classList.toggle('hidden', penalty===0);
+  if(discount>0) document.getElementById('adjDiscount').textContent = '− '+fmt2(discount);
+  if(penalty>0) { document.getElementById('penaltyLabel').textContent=penLabel; document.getElementById('adjPenalty').textContent='+ '+fmt2(penalty); }
+  rRow.classList.toggle('hidden', days<=60);
+
+  // Payment chip
+  const chip = document.getElementById('payChip');
+  let chipClass, chipText;
+  if(days<=7) { chipClass='chip-ok'; chipText='✓ 2% early payment discount applies'; }
+  else if(days<=15) { chipClass='chip-ok'; chipText='✓ Paying within 15 days — no surcharge'; }
+  else if(days<=30) { chipClass='chip-warn'; chipText='⚠ 5% late surcharge applies (days 16–30)'; }
+  else if(days<=40) { chipClass='chip-warn'; chipText='⚠ 10% late surcharge applies (days 31–40)'; }
+  else if(days<=60) { chipClass='chip-danger'; chipText='✕ 25% surcharge (days 41–60)'; }
+  else { chipClass='chip-danger'; chipText='✕ 25% surcharge + disconnection risk + रू 500 reconnection fee'; }
+  chip.className='chip '+chipClass;
+  chip.textContent=chipText;
+
+  renderTariffRef(amp, slabIdx);
+}
+
+function renderTariffRef(amp, activeIdx) {
+  const slabs = TARIFF[amp];
+  let html = `<tr><th>Units (kWh)</th><th style="text-align:right;">Service (रू)</th><th style="text-align:right;">Energy/unit (रू)</th></tr>`;
+  for(let i=0;i<slabs.length;i++) {
+    const active = i===activeIdx ? ' class="active-slab"' : '';
+    html += `<tr${active}><td>${LABELS[i]}</td><td style="text-align:right;">${slabs[i].svc}</td><td style="text-align:right;">${slabs[i].nrg}</td></tr>`;
+  }
+  document.getElementById('tariffRef').innerHTML = html;
+}
+
+calculate();
+</script>
+</body>
+</html>
